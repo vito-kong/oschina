@@ -5,6 +5,7 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,7 +14,6 @@ import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
-import android.widget.ListView;
 import android.widget.TextView;
 
 import com.loopj.android.http.AsyncHttpResponseHandler;
@@ -44,7 +44,7 @@ import butterknife.ButterKnife;
 import butterknife.InjectView;
 
 @SuppressLint("NewApi")
-public abstract class BaseListFragment<T extends Entity> extends BaseFragment
+public abstract class BaseRecyclerFragment<T extends Entity> extends BaseFragment
         implements SwipeRefreshLayout.OnRefreshListener, OnItemClickListener,
         OnScrollListener {
 
@@ -53,13 +53,10 @@ public abstract class BaseListFragment<T extends Entity> extends BaseFragment
     @InjectView(R.id.swiperefreshlayout)
     protected SwipeRefreshLayout mSwipeRefreshLayout;
 
-    @InjectView(R.id.listview)
-    protected ListView mListView;
-
     @InjectView(R.id.recycler_view)
     protected RecyclerView mRecyclerView;
 
-    protected ListBaseAdapter<T> mAdapter;
+    protected RecyclerBaseAdapter<T> mAdapter;
 
     @InjectView(R.id.error_layout)
     protected EmptyLayout mErrorLayout;
@@ -82,7 +79,7 @@ public abstract class BaseListFragment<T extends Entity> extends BaseFragment
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState) {
+                             Bundle savedInstanceState) {
         View view = inflater.inflate(getLayoutId(), container, false);
         return view;
     }
@@ -121,15 +118,16 @@ public abstract class BaseListFragment<T extends Entity> extends BaseFragment
             }
         });
 
-        mListView.setOnItemClickListener(this);
-        mListView.setOnScrollListener(this);
+        mRecyclerView.setHasFixedSize(true);
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getContext());
+        mRecyclerView.setLayoutManager(layoutManager);
 
         if (mAdapter != null) {
-            mListView.setAdapter(mAdapter);
+            mRecyclerView.setAdapter(mAdapter);
             mErrorLayout.setErrorType(EmptyLayout.HIDE_LAYOUT);
         } else {
             mAdapter = getListAdapter();
-            mListView.setAdapter(mAdapter);
+            mRecyclerView.setAdapter(mAdapter);
 
             if (requestDataIfViewCreated()) {
                 mErrorLayout.setErrorType(EmptyLayout.NETWORK_LOADING);
@@ -158,7 +156,7 @@ public abstract class BaseListFragment<T extends Entity> extends BaseFragment
         super.onDestroy();
     }
 
-    protected abstract ListBaseAdapter<T> getListAdapter();
+    protected abstract RecyclerBaseAdapter<T> getListAdapter();
 
     // 下拉刷新数据
     @Override
@@ -167,7 +165,7 @@ public abstract class BaseListFragment<T extends Entity> extends BaseFragment
             return;
         }
         // 设置顶部正在刷新
-        mListView.setSelection(0);
+        //mListView.setSelection(0);
         setSwipeRefreshLoadingState();
         mCurrentPage = 0;
         mState = STATE_REFRESH;
@@ -192,7 +190,7 @@ public abstract class BaseListFragment<T extends Entity> extends BaseFragment
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position,
-            long id) {}
+                            long id) {}
 
     private String getCacheKey() {
         return new StringBuilder(getCacheKeyPrefix()).append("_")
@@ -206,10 +204,10 @@ public abstract class BaseListFragment<T extends Entity> extends BaseFragment
 
     /***
      * 获取列表数据
-     * 
-     * 
+     *
+     *
      * @author 火蚁 2015-2-9 下午3:16:12
-     * 
+     *
      * @return void
      * @param refresh
      */
@@ -225,9 +223,9 @@ public abstract class BaseListFragment<T extends Entity> extends BaseFragment
 
     /***
      * 判断是否需要读取缓存的数据
-     * 
+     *
      * @author 火蚁 2015-2-10 下午2:41:02
-     * 
+     *
      * @return boolean
      * @param refresh
      * @return
@@ -262,11 +260,11 @@ public abstract class BaseListFragment<T extends Entity> extends BaseFragment
 
     /***
      * 自动刷新的时间
-     * 
+     *
      * 默认：自动刷新的时间为半天时间
-     * 
+     *
      * @author 火蚁 2015-2-9 下午5:55:11
-     * 
+     *
      * @return long
      * @return
      */
@@ -348,7 +346,7 @@ public abstract class BaseListFragment<T extends Entity> extends BaseFragment
 
         @Override
         public void onSuccess(int statusCode, Header[] headers,
-                byte[] responseBytes) {
+                              byte[] responseBytes) {
             if (mCurrentPage == 0 && needAutoRefresh()) {
                 AppContext.putToLastRefreshTime(getCacheKey(),
                         StringUtils.getCurTimeStr());
@@ -363,7 +361,7 @@ public abstract class BaseListFragment<T extends Entity> extends BaseFragment
 
         @Override
         public void onFailure(int arg0, Header[] arg1, byte[] arg2,
-                Throwable arg3) {
+                              Throwable arg3) {
             if (isAdded()) {
                 readCacheData(getCacheKey());
             }
@@ -383,7 +381,7 @@ public abstract class BaseListFragment<T extends Entity> extends BaseFragment
 
         mErrorLayout.setErrorType(EmptyLayout.HIDE_LAYOUT);
         if (mCurrentPage == 0) {
-            mAdapter.clear();
+            mAdapter.
         }
 
         for (int i = 0; i < data.size(); i++) {
@@ -418,9 +416,9 @@ public abstract class BaseListFragment<T extends Entity> extends BaseFragment
 
     /**
      * 是否需要隐藏listview，显示无数据状态
-     * 
+     *
      * @author 火蚁 2015-1-27 下午6:18:59
-     * 
+     *
      */
     protected boolean needShowEmptyNoData() {
         return true;
@@ -567,7 +565,7 @@ public abstract class BaseListFragment<T extends Entity> extends BaseFragment
 
     @Override
     public void onScroll(AbsListView view, int firstVisibleItem,
-            int visibleItemCount, int totalItemCount) {
+                         int visibleItemCount, int totalItemCount) {
         // 数据已经全部加载，或数据为空时，或正在加载，不处理滚动事件
         // if (mState == STATE_NOMORE || mState == STATE_LOADMORE
         // || mState == STATE_REFRESH) {
@@ -588,13 +586,13 @@ public abstract class BaseListFragment<T extends Entity> extends BaseFragment
 
     /**
      * 保存已读的文章列表
-     * 
+     *
      * @param view
      * @param prefFileName
      * @param key
      */
     protected void saveToReadedList(final View view, final String prefFileName,
-            final String key) {
+                                    final String key) {
         // 放入已读列表
         AppContext.putReadedPostList(prefFileName, key, "true");
         TextView tvTitle = (TextView) view.findViewById(R.id.tv_title);
